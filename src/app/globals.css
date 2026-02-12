@@ -1,26 +1,182 @@
 @import "tailwindcss";
 
+/* ============ 深色主题变量 ============ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a1a;
+  --foreground: #e2e8f0;
+  --card-bg: #1a1a2e;
+  --card-bg-hover: #252542;
+  --honey: #f59e0b;
+  --honey-dark: #d97706;
+  --honey-light: #fef3c7;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: rgba(245, 158, 11, 0.15);
+  --glow-honey: rgba(245, 158, 11, 0.4);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-honey: var(--honey);
+  --color-honey-light: var(--honey-light);
+  --color-card: var(--card-bg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ============ 全局基础样式 ============ */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* ============ 自定义滚动条 ============ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(26, 26, 46, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.5);
+}
+
+/* ============ 动画关键帧 ============ */
+
+/* 浮动动画 - 代理轻微上下浮动 */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+/* 脉冲动画 - 涌现事件高亮 */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.6), 0 0 40px rgba(245, 158, 11, 0.2); }
+}
+
+/* 呼吸灯动画 - 按钮发光 */
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.6); }
+}
+
+/* 虚线流动动画 - 代理连线 */
+@keyframes dash-flow {
+  to { stroke-dashoffset: -20; }
+}
+
+/* 淡入动画 */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 旋转发光 */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============ 工具类 ============ */
+
+/* 浮动效果 */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* 脉冲发光效果 */
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* 呼吸灯效果 */
+.animate-breathe {
+  animation: breathe 2.5s ease-in-out infinite;
+}
+
+/* 淡入效果 */
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+/* 虚线流动 */
+.animate-dash {
+  animation: dash-flow 1s linear infinite;
+}
+
+/* 渐变文字 - 蜂蜜金 */
+.text-gradient-honey {
+  background: linear-gradient(135deg, #f59e0b, #d97706, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 深色卡片样式 */
+.card-dark {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+}
+
+/* 发光按钮 */
+.btn-glow {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+}
+.btn-glow:hover {
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.5), 0 0 50px rgba(245, 158, 11, 0.2);
+  transform: translateY(-1px);
+}
+
+/* 六边形网格背景图案 */
+.hex-bg-pattern {
+  background-image:
+    linear-gradient(30deg, rgba(245, 158, 11, 0.03) 12%, transparent 12.5%, transparent 87%, rgba(245, 158, 11, 0.03) 87.5%),
+    linear-gradient(150deg, rgba(245, 158, 11, 0.03) 12%, transparent 12.5%, transparent 87%, rgba(245, 158, 11, 0.03) 87.5%),
+    linear-gradient(30deg, rgba(245, 158, 11, 0.03) 12%, transparent 12.5%, transparent 87%, rgba(245, 158, 11, 0.03) 87.5%),
+    linear-gradient(150deg, rgba(245, 158, 11, 0.03) 12%, transparent 12.5%, transparent 87%, rgba(245, 158, 11, 0.03) 87.5%),
+    linear-gradient(60deg, rgba(245, 158, 11, 0.05) 25%, transparent 25.5%, transparent 75%, rgba(245, 158, 11, 0.05) 75%),
+    linear-gradient(60deg, rgba(245, 158, 11, 0.05) 25%, transparent 25.5%, transparent 75%, rgba(245, 158, 11, 0.05) 75%);
+  background-size: 80px 140px;
+  background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
+}
+
+/* 自定义滑块样式 */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #1a1a2e, #f59e0b);
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+  transition: box-shadow 0.2s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
 }

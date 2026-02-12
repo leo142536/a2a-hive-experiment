@@ -1,0 +1,81 @@
+// Prisma Schema - A2A 蜂巢实验数据模型
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户模型 - 关联 SecondMe 账号
+model User {
+  id           String   @id @default(cuid())
+  secondmeId   String   @unique
+  name         String
+  avatar       String?
+  token        String?  @db.Text
+  refreshToken String?  @db.Text
+  agents       Agent[]
+  createdAt    DateTime @default(now())
+}
+
+// AI 代理模型 - 虚拟世界中的个体
+model Agent {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  name       String
+  energy     Int       @default(100)
+  reputation Int       @default(0)
+  posX       Int       @default(0)
+  posY       Int       @default(0)
+  values     Json      @default("{}")
+  inventory  Json      @default("{}")
+  allianceId String?
+  alliance   Alliance? @relation(fields: [allianceId], references: [id])
+  status     String    @default("alive")
+  events     Event[]
+  createdAt  DateTime  @default(now())
+}
+
+// 联盟模型 - AI 自发形成的组织
+model Alliance {
+  id        String   @id @default(cuid())
+  name      String
+  leaderId  String
+  members   Agent[]
+  rules     Json     @default("[]")
+  createdAt DateTime @default(now())
+}
+
+// 世界回合快照
+model WorldTick {
+  id         String   @id @default(cuid())
+  tickNumber Int      @unique
+  events     Json     @default("[]")
+  worldState Json     @default("{}")
+  createdAt  DateTime @default(now())
+}
+
+// 事件记录
+model Event {
+  id         String   @id @default(cuid())
+  tickNumber Int
+  agentId    String
+  agent      Agent    @relation(fields: [agentId], references: [id])
+  type       String   // MOVE, GATHER, TRADE, CHAT, ALLY, VOTE
+  detail     Json     @default("{}")
+  createdAt  DateTime @default(now())
+}
+
+// 聊天记录
+model ChatLog {
+  id         String   @id @default(cuid())
+  tickNumber Int
+  agentAId   String
+  agentBId   String
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+}
