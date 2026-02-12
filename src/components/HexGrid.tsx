@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * 2D 空间可视化组件 - 核心视觉
+ * 2D 空间可视化组件 - 核心视觉（动画增强版）
  * 深色背景 + 淡六边形网格线 + emoji 代理卡片 + 交互连线 + 资源图标
- * 类似"同频小屋"的 AI 生态系统俯瞰图
+ * framer-motion: layout 动画、scale 弹入、淡出缩小、呼吸灯、悬停放大
  */
 
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   type HexCell,
   type AgentState,
@@ -25,7 +26,6 @@ interface HexGridProps {
 
 /* ============ 常量配置 ============ */
 
-// 视图尺寸
 const SVG_WIDTH = 800;
 const SVG_HEIGHT = 600;
 const CENTER_X = SVG_WIDTH / 2;
@@ -33,17 +33,17 @@ const CENTER_Y = SVG_HEIGHT / 2;
 const HEX_SIZE = 42;
 
 // 代理 emoji 头像池
-const AGENT_EMOJIS = ["🤖", "🧠", "💡", "🎯", "🔮", "🌟", "🎭", "🦊", "🐝", "🦋", "🐙", "🦉", "🐺", "🦅", "🐲"];
+const AGENT_EMOJIS = ["\u{1F916}", "\u{1F9E0}", "\u{1F4A1}", "\u{1F3AF}", "\u{1F52E}", "\u{1F31F}", "\u{1F3AD}", "\u{1F98A}", "\u{1F41D}", "\u{1F98B}", "\u{1F419}", "\u{1F989}", "\u{1F43A}", "\u{1F985}", "\u{1F432}"];
 
 // 资源图标
 const RESOURCE_ICONS: Record<ResourceType, string> = {
-  food: "🌿",
-  material: "🪨",
-  knowledge: "📚",
-  energy: "⚡",
+  food: "\u{1F33F}",
+  material: "\u{1FAA8}",
+  knowledge: "\u{1F4DA}",
+  energy: "\u26A1",
 };
 
-// 资源颜色（深色主题适配）
+// 资源颜色
 const RESOURCE_GLOW: Record<ResourceType, string> = {
   food: "#10b981",
   material: "#78716c",
@@ -80,6 +80,138 @@ function getAgentEmoji(id: string): string {
   return AGENT_EMOJIS[Math.abs(hash) % AGENT_EMOJIS.length];
 }
 
+/** 单个代理 SVG 组件 - 支持动画 */
+function AgentNode({
+  agent,
+  x,
+  y,
+  allianceColor,
+  emoji,
+  onClick,
+}: {
+  agent: AgentState;
+  x: number;
+  y: number;
+  allianceColor: string | null;
+  emoji: string;
+  onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  // 用于追踪上一次位置，实现平滑移动
+  const prevPos = useRef({ x, y });
+
+  useEffect(() => {
+    prevPos.current = { x, y };
+  }, [x, y]);
+
+  const scale = hovered ? 1.25 : 1;
+  const isDead = agent.status === "dead";
+
+  return (
+    <motion.g
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="cursor-pointer"
+      filter="url(#glow-agent)"
+      // layout 动画：位置变化时平滑过渡
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{
+        opacity: isDead ? 0 : 1,
+        scale: isDead ? 0 : scale,
+        x: x - prevPos.current.x === 0 ? undefined : 0,
+        y: y - prevPos.current.y === 0 ? undefined : 0,
+      }}
+      exit={{ opacity: 0, scale: 0, transition: { duration: 0.3 } }}
+      transition={{
+        type: "spring",
+        damping: 15,
+        stiffness: 200,
+        scale: { duration: 0.2 },
+      }}
+      style={{ originX: `${x}px`, originY: `${y}px` }}
+    >
+      {/* 联盟光晕圈 */}
+      {allianceColor && (
+        <circle
+          cx={x}
+          cy={y}
+          r="26"
+          fill="none"
+          stroke={allianceColor}
+          strokeWidth="1.5"
+          strokeOpacity="0.4"
+          strokeDasharray="4,3"
+        />
+      )}
+
+      {/* 代理背景圆 */}
+      <circle
+        cx={x}
+        cy={y}
+        r="20"
+        fill="rgba(26, 26, 46, 0.9)"
+        stroke={allianceColor || "rgba(245, 158, 11, 0.3)"}
+        strokeWidth="1.5"
+      />
+
+      {/* Emoji 头像 */}
+      <text
+        x={x}
+        y={y + 1}
+        textAnchor="middle"
+        fontSize="18"
+        dominantBaseline="middle"
+      >
+        {emoji}
+      </text>
+
+      {/* 代理名字标签 */}
+      <rect
+        x={x - 22}
+        y={y - 36}
+        width="44"
+        height="14"
+        rx="7"
+        fill="rgba(10, 10, 26, 0.85)"
+        stroke={allianceColor || "rgba(245, 158, 11, 0.2)"}
+        strokeWidth="0.5"
+      />
+      <text
+        x={x}
+        y={y - 28}
+        textAnchor="middle"
+        fontSize="8"
+        fill="#e2e8f0"
+        fontWeight="600"
+        dominantBaseline="middle"
+      >
+        {agent.name.slice(0, 5)}
+      </text>
+
+      {/* 能量条背景 */}
+      <rect
+        x={x - 14}
+        y={y + 23}
+        width="28"
+        height="3"
+        rx="1.5"
+        fill="rgba(255,255,255,0.1)"
+      />
+      {/* 能量条填充 - 动画宽度 */}
+      <motion.rect
+        x={x - 14}
+        y={y + 23}
+        animate={{ width: Math.max(0, (agent.energy / 100) * 28) }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        height="3"
+        rx="1.5"
+        fill={agent.energy > 50 ? "#10b981" : agent.energy > 25 ? "#eab308" : "#ef4444"}
+      />
+    </motion.g>
+  );
+}
+
 export default function HexGrid({ grid, agents, alliances, onAgentClick, onCellClick }: HexGridProps) {
   // 获取联盟颜色
   const getAllianceColor = (allianceId: string | null) => {
@@ -91,7 +223,7 @@ export default function HexGrid({ grid, agents, alliances, onAgentClick, onCellC
   // 存活代理
   const aliveAgents = useMemo(() => agents.filter((a) => a.status === "alive"), [agents]);
 
-  // 计算代理之间的交互连线（距离 <= 2 且同联盟）
+  // 计算代理之间的交互连线
   const connections = useMemo(() => {
     const lines: { x1: number; y1: number; x2: number; y2: number; color: string }[] = [];
     for (let i = 0; i < aliveAgents.length; i++) {
@@ -120,7 +252,6 @@ export default function HexGrid({ grid, agents, alliances, onAgentClick, onCellC
     >
       {/* 定义滤镜和渐变 */}
       <defs>
-        {/* 代理发光效果 */}
         <filter id="glow-agent" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="3" result="blur" />
           <feMerge>
@@ -128,7 +259,6 @@ export default function HexGrid({ grid, agents, alliances, onAgentClick, onCellC
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-        {/* 资源微光 */}
         <filter id="glow-resource" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="2" result="blur" />
           <feMerge>
@@ -136,7 +266,6 @@ export default function HexGrid({ grid, agents, alliances, onAgentClick, onCellC
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-        {/* 连线渐变 */}
         {ALLIANCE_COLORS.map((color, i) => (
           <linearGradient key={i} id={`line-grad-${i}`} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={color} stopOpacity="0.6" />
@@ -160,11 +289,11 @@ export default function HexGrid({ grid, agents, alliances, onAgentClick, onCellC
         );
       })}
 
-      {/* 资源格子 - 带微光 */}
+      {/* 资源格子 - 带呼吸灯效果 */}
       {grid.map((cell) => {
         const { x, y } = hexToPixel(cell.q, cell.r);
         const glowColor = RESOURCE_GLOW[cell.resource];
-        const opacity = 0.03 + (cell.amount / 10) * 0.08;
+        const baseOpacity = 0.03 + (cell.amount / 10) * 0.08;
 
         return (
           <g
@@ -172,11 +301,12 @@ export default function HexGrid({ grid, agents, alliances, onAgentClick, onCellC
             onClick={() => onCellClick?.(cell)}
             className="cursor-pointer"
           >
-            {/* 资源区域填充 */}
-            <polygon
+            {/* 资源区域填充 - 呼吸灯 */}
+            <motion.polygon
               points={hexPoints(x, y, HEX_SIZE - 2)}
               fill={glowColor}
-              fillOpacity={opacity}
+              animate={{ fillOpacity: [baseOpacity, baseOpacity * 1.5, baseOpacity] }}
+              transition={{ duration: 3 + Math.random() * 2, repeat: Infinity, ease: "easeInOut" }}
             />
             {/* 资源图标 */}
             {cell.amount > 0 && (
@@ -230,103 +360,26 @@ export default function HexGrid({ grid, agents, alliances, onAgentClick, onCellC
         );
       })}
 
-      {/* AI 代理 - emoji 卡片 */}
-      {aliveAgents.map((agent, idx) => {
-        const { x, y } = hexToPixel(agent.posQ, agent.posR);
-        const allianceColor = getAllianceColor(agent.allianceId);
-        const emoji = getAgentEmoji(agent.id);
-        // 浮动动画延迟，让每个代理不同步
-        const floatDelay = (idx * 0.5) % 3;
+      {/* AI 代理 - 带 AnimatePresence 进出动画 */}
+      <AnimatePresence>
+        {aliveAgents.map((agent) => {
+          const { x, y } = hexToPixel(agent.posQ, agent.posR);
+          const allianceColor = getAllianceColor(agent.allianceId);
+          const emoji = getAgentEmoji(agent.id);
 
-        return (
-          <g
-            key={agent.id}
-            onClick={() => onAgentClick?.(agent)}
-            className="cursor-pointer"
-            filter="url(#glow-agent)"
-            style={{
-              animation: `float 3s ease-in-out ${floatDelay}s infinite`,
-            }}
-          >
-            {/* 联盟光晕圈 */}
-            {allianceColor && (
-              <circle
-                cx={x}
-                cy={y}
-                r="26"
-                fill="none"
-                stroke={allianceColor}
-                strokeWidth="1.5"
-                strokeOpacity="0.4"
-                strokeDasharray="4,3"
-              />
-            )}
-
-            {/* 代理背景圆 - 半透明深色 */}
-            <circle
-              cx={x}
-              cy={y}
-              r="20"
-              fill="rgba(26, 26, 46, 0.9)"
-              stroke={allianceColor || "rgba(245, 158, 11, 0.3)"}
-              strokeWidth="1.5"
-            />
-
-            {/* Emoji 头像 */}
-            <text
+          return (
+            <AgentNode
+              key={agent.id}
+              agent={agent}
               x={x}
-              y={y + 1}
-              textAnchor="middle"
-              fontSize="18"
-              dominantBaseline="middle"
-            >
-              {emoji}
-            </text>
-
-            {/* 代理名字标签 */}
-            <rect
-              x={x - 22}
-              y={y - 36}
-              width="44"
-              height="14"
-              rx="7"
-              fill="rgba(10, 10, 26, 0.85)"
-              stroke={allianceColor || "rgba(245, 158, 11, 0.2)"}
-              strokeWidth="0.5"
+              y={y}
+              allianceColor={allianceColor}
+              emoji={emoji}
+              onClick={() => onAgentClick?.(agent)}
             />
-            <text
-              x={x}
-              y={y - 28}
-              textAnchor="middle"
-              fontSize="8"
-              fill="#e2e8f0"
-              fontWeight="600"
-              dominantBaseline="middle"
-            >
-              {agent.name.slice(0, 5)}
-            </text>
-
-            {/* 能量条背景 */}
-            <rect
-              x={x - 14}
-              y={y + 23}
-              width="28"
-              height="3"
-              rx="1.5"
-              fill="rgba(255,255,255,0.1)"
-            />
-            {/* 能量条填充 */}
-            <rect
-              x={x - 14}
-              y={y + 23}
-              width={Math.max(0, (agent.energy / 100) * 28)}
-              height="3"
-              rx="1.5"
-              fill={agent.energy > 50 ? "#10b981" : agent.energy > 25 ? "#eab308" : "#ef4444"}
-            />
-          </g>
-        );
-      })}
+          );
+        })}
+      </AnimatePresence>
     </svg>
   );
 }
