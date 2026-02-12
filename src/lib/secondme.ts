@@ -17,7 +17,7 @@ const SCOPES = "user.info,user.info.shades,user.info.softmemory,note.add,chat";
  */
 export function getAuthUrl(state?: string): string {
   const params = new URLSearchParams({
-    app_id: APP_ID,
+    client_id: APP_ID,
     redirect_uri: REDIRECT_URI,
     scope: SCOPES,
     state: state || "hive",
